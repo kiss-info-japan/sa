@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: ["http://192.168.10.117", "http://localhost:3000"]
+  origin: ["http://192.168.10.117", "http://localhost:3000", "https://hidden-config.onrender.com"]
 }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));

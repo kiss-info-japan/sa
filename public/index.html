@@ -120,7 +120,10 @@ body::-webkit-scrollbar-track {
     </div>
 
     <script>
-        const BASE_URL = "http://192.168.10.117:3000";
+const BASE_URL =
+  location.hostname === "localhost" || location.hostname.startsWith("192.168.")
+    ? "http://192.168.10.117:3000" // ← ローカルで開発中
+    : "https://hidden-config.onrender.com"; // ← 本番環境（Render）
         const userId = "123";
         let questionCount = 0;
 
