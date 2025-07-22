@@ -121,9 +121,10 @@ body::-webkit-scrollbar-track {
 
     <script>
 const BASE_URL =
-  location.hostname === "localhost" || location.hostname.startsWith("192.168.")
-    ? "http://192.168.10.117:3000" // ← ローカルで開発中
-    : "https://hidden-config.onrender.com"; // ← 本番環境（Render）
+  location.hostname === "localhost"
+    ? "http://localhost:3000"
+    : "https://hidden-config.onrender.com";
+
         const userId = "123";
         let questionCount = 0;
 
@@ -237,7 +238,6 @@ if (questionCount >= 10 && !window.diagnosisPollingStarted) {
                 setStatusMessage(""); 
                 appendMessage("完了しました", "system");
                 appendMessage(data.reply, "system");
-                showPrintButton(data.reply);
 
                 const inputLine = document.querySelector(".input-line");
                 if (inputLine) inputLine.remove();
@@ -248,13 +248,8 @@ if (questionCount >= 10 && !window.diagnosisPollingStarted) {
     }, 3000); // ✅ 3秒ごとに確認
 }
 
-        // ここで診断結果が含まれているか判定し、印刷ボタンを表示
-        if (data.reply.includes("診断が完了しました")) {
-    showPrintButton(data.reply);
-    // 入力欄を消す
     const inputLine = document.querySelector(".input-line");
     if (inputLine) inputLine.remove();
-}
 
 
     } catch (error) {
@@ -262,35 +257,7 @@ if (questionCount >= 10 && !window.diagnosisPollingStarted) {
         alert("通信エラーが発生しました。");
     }
 }
-function showPrintButton(diagnosisText) {
-    // すでにあれば削除
-    const existingBtn = document.getElementById("printButton");
-    if (existingBtn) existingBtn.remove();
 
-    const btn = document.createElement("button");
-    btn.id = "printButton";
-    btn.textContent = "診断結果を印刷する";
-    btn.style.marginTop = "20px";
-    btn.style.padding = "10px 20px";
-    btn.style.fontSize = "1rem";
-    btn.style.cursor = "pointer";
-
-    btn.onclick = async () => {
-        try {
-            const res = await fetch(`${BASE_URL}/print`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: diagnosisText })
-            });
-            const data = await res.json();
-            alert(data.message || "印刷しました");
-        } catch {
-            alert("印刷に失敗しました");
-        }
-    };
-
-document.getElementById("chatBox").appendChild(btn);
-}
 
 
         // 診断開始ボタン
