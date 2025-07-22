@@ -121,10 +121,9 @@ body::-webkit-scrollbar-track {
 
     <script>
 const BASE_URL =
-  location.hostname === "localhost"
-    ? "http://localhost:3000"
-    : "https://hidden-config.onrender.com";
-
+  location.hostname === "localhost" || location.hostname.startsWith("192.168.")
+    ? "http://192.168.10.117:3000" // ← ローカルで開発中
+    : "https://hidden-config.onrender.com"; // ← 本番環境（Render）
         const userId = "123";
         let questionCount = 0;
 
@@ -248,8 +247,13 @@ if (questionCount >= 10 && !window.diagnosisPollingStarted) {
     }, 3000); // ✅ 3秒ごとに確認
 }
 
+        // ここで診断結果が含まれているか判定し、印刷ボタンを表示
+        if (data.reply.includes("診断が完了しました")) {
+    showPrintButton(data.reply);
+    // 入力欄を消す
     const inputLine = document.querySelector(".input-line");
     if (inputLine) inputLine.remove();
+}
 
 
     } catch (error) {
