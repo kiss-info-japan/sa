@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <title>エーテルネット Prototype</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0a0a1a;
+            color: white;
+            font-family: sans-serif;
+        }
+
+        #menu {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .menu-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+
+        .menu-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        #inputModal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10, 10, 20, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            z-index: 20;
+        }
+
+        #inputModal input, #inputModal button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="etherCanvas"></canvas>
+
+    <div id="menu">
+        <div class="menu-button" onclick="openModal('prayer')">祈りを送る</div>
+        <div class="menu-button" onclick="showOmen()">兆しを求める</div>
+        <div class="menu-button" onclick="comfort()">気配に触れる</div>
+        <div class="menu-button" onclick="openModal('message')">亡きものに言葉を送る</div>
+    </div>
+
+    <div id="inputModal">
+        <input type="text" id="userInput" placeholder="言葉を入力してください" />
+        <button onclick="submitInput()">送信</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('etherCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let particles = [];
+
+        class Particle {
+            constructor(x, y, radius, alpha, speed) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.alpha = alpha;
+                this.speed = speed;
+            }
+
+            update() {
+                this.y -= this.speed;
+                if (this.y < -10) this.y = canvas.height + 10;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 200; i++) {
+                particles.push(new Particle(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height,
+                    Math.random() * 2 + 1,
+                    Math.random() * 0.5,
+                    Math.random() * 0.5 + 0.2
+                ));
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(10, 10, 30, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        initParticles();
+        animate();
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initParticles();
+        });
+
+        // Modal logic
+        let currentAction = '';
+
+        function openModal(action) {
+            currentAction = action;
+            document.getElementById('inputModal').style.display = 'block';
+        }
+
+        function submitInput() {
+            const input = document.getElementById('userInput').value;
+            if (input.trim() !== '') {
+                if (currentAction === 'prayer' || currentAction === 'message') {
+                    spawnParticleWave();
+                }
+            }
+            document.getElementById('inputModal').style.display = 'none';
+            document.getElementById('userInput').value = '';
+        }
+
+        function spawnParticleWave() {
+            for (let i = 0; i < 50; i++) {
+                particles.push(new Particle(
+                    canvas.width / 2 + (Math.random() - 0.5) * 200,
+                    canvas.height / 2 + (Math.random() - 0.5) * 200,
+                    Math.random() * 3 + 2,
+                    0.8,
+                    Math.random() * 1 + 0.5
+                ));
+            }
+        }
+
+        function showOmen() {
+            const omen = [
+                "流れに任せよ",
+                "忘れることも恩恵なり",
+                "今ここに在る",
+                "兆しは近い",
+                "光は静かに漂う"
+            ];
+            alert(omen[Math.floor(Math.random() * omen.length)]);
+        }
+
+        function comfort() {
+            spawnParticleWave();
+        }
+    </script>
+</body>
+</html>

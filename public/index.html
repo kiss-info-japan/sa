@@ -1,0 +1,332 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hidden Config</title>
+    <style>
+        /* 全体のレイアウト */
+        body {
+    background-color: #000;
+    color: #FFF;
+    font-family: Arial, sans-serif;
+    font-size: 90%;
+    margin: 0;
+    padding: 5%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    height: 100vh;
+    overflow: auto; /* ← ここを修正 */
+}
+
+/* チャットボックス */
+.console {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 80%;
+    line-height: 1.5;
+    padding: 10px;
+    background-color: #000;
+    color: #FFF;
+    width: 90vw;
+    overflow-y: auto; /* スクロール可能に */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+/* 診断開始ボタン */
+#startButton {
+    background-color: transparent;
+    color: #FFF;
+    padding: 10px 20px;
+    font-size: 100%;
+    margin-bottom: 15px;
+    border: none;
+    cursor: pointer;
+}
+
+#startButton:hover {
+    color: #6b6b6b;
+}
+
+/* リロードボタン（画面右上） */
+#reloadButton {
+    position: fixed; /* ✅ 画面の端に固定 */
+    top: 5px;
+    right: 10px;
+    background-color: transparent;
+    color: #FFF;
+    padding: 10px;
+    font-size: 100%;
+    border: none;
+    cursor: pointer;
+}
+
+#reloadButton:hover {
+    color: #6b6b6b;
+}
+
+/* ステータスメッセージ */
+#statusMessage {
+    white-space: pre-line;
+    color: #ffffff;
+    padding: 10px;
+    text-align: left;
+    font-size: 100%;
+}
+
+/* 入力エリア */
+.input-line {
+    font-size: 16px;
+    margin-top: 10px;
+    width: 100%;
+    color: #FFF;
+    display: flex;
+    flex-direction: column;
+}
+
+.input-line input {
+    background-color: transparent;
+    color: #FFF;
+    outline: none;
+    width: 100%;
+    font-family: Arial, sans-serif;
+    font-size: 100%;
+    padding: 10px;
+    border: none;
+}
+/* スクロールバーのスタイル */
+body::-webkit-scrollbar {
+    width: 8px;
+}
+body::-webkit-scrollbar-thumb {
+    background-color: #333;
+    border-radius: 4px;
+}
+body::-webkit-scrollbar-track {
+    background: #000;
+}
+
+
+    </style>
+</head>
+<body>
+
+    <button id="startButton">診断を開始</button>
+    <button id="reloadButton">リロード</button>  <!-- ✅ 追加したリロードボタン -->
+    <div id="statusMessage"></div>
+    <div id="chatContainer">
+        <div id="chatBox" class="console"></div>
+    </div>
+
+    <script>
+        const BASE_URL = "http://192.168.10.117:3000";
+        const userId = "123";
+        let questionCount = 0;
+
+        async function startDiagnosis(userId) {
+            const response = await fetch(`${BASE_URL}/start-diagnosis`, {
+                method: "POST",
+                mode: "cors",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ userId })
+            });
+
+            const data = await response.json();
+            console.log(data);
+        }
+
+        // メッセージ追加
+        function appendMessage(content, type) {
+            const chatBox = document.getElementById("chatBox");
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("message", type);
+            chatBox.appendChild(messageDiv);
+
+            if (type === "system") {
+                typewriterEffect(messageDiv, content);
+            } else {
+                messageDiv.innerText = content;
+            }
+
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // タイプライターエフェクト
+        function typewriterEffect(element, content) {
+            let i = 0;
+            element.innerHTML = '';
+            const typingInterval = setInterval(() => {
+                element.innerHTML += content.charAt(i);
+                i++;
+                if (i >= content.length) {
+                    clearInterval(typingInterval);
+                }
+            }, 10);
+        }
+
+        // 入力フィールドを追加
+        function appendInputField() {
+            const existingInputField = document.querySelector(".input-line");
+            if (existingInputField) {
+                existingInputField.remove();
+            }
+
+            const chatBox = document.getElementById("chatBox");
+            const inputLineDiv = document.createElement("div");
+            inputLineDiv.classList.add("input-line");
+
+            const inputField = document.createElement("input");
+            inputField.type = "text";
+            inputField.placeholder = "メッセージを入力";
+
+            inputLineDiv.appendChild(inputField);
+            chatBox.appendChild(inputLineDiv);
+
+            inputField.focus();
+
+            inputField.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                    sendMessage(inputField.value);
+                    inputField.value = "";
+                }
+            });
+
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // メッセージ送信
+       async function sendMessage(message) {
+    if (!message) return;
+
+    appendMessage(message, "user");
+    const inputField = document.querySelector(".input-line input");
+    inputField.value = "";
+
+    try {
+        const response = await fetch(`${BASE_URL}/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, message })
+        });
+
+        if (!response.ok) throw new Error("サーバーエラー");
+
+        const data = await response.json();
+
+        appendMessage(data.reply, "system");
+        appendInputField();
+
+     questionCount++;
+
+if (questionCount >= 10 && !window.diagnosisPollingStarted) {
+    window.diagnosisPollingStarted = true; // ✅ フラグを立てて、何度も走らないようにする
+    setStatusMessage("診断結果を生成中...");
+
+    const intervalId = setInterval(async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/diagnosis?userId=${userId}`);
+            const data = await res.json();
+            if (data.reply && !data.reply.includes("まだ生成されていません")) {
+                clearInterval(intervalId); // ✅ 停止
+                setStatusMessage(""); 
+                appendMessage("完了しました", "system");
+                appendMessage(data.reply, "system");
+                showPrintButton(data.reply);
+
+                const inputLine = document.querySelector(".input-line");
+                if (inputLine) inputLine.remove();
+            }
+        } catch (err) {
+            console.error("診断結果取得エラー:", err);
+        }
+    }, 3000); // ✅ 3秒ごとに確認
+}
+
+        // ここで診断結果が含まれているか判定し、印刷ボタンを表示
+        if (data.reply.includes("診断が完了しました")) {
+    showPrintButton(data.reply);
+    // 入力欄を消す
+    const inputLine = document.querySelector(".input-line");
+    if (inputLine) inputLine.remove();
+}
+
+
+    } catch (error) {
+        setStatusMessage("エラーが発生しました");
+        alert("通信エラーが発生しました。");
+    }
+}
+function showPrintButton(diagnosisText) {
+    // すでにあれば削除
+    const existingBtn = document.getElementById("printButton");
+    if (existingBtn) existingBtn.remove();
+
+    const btn = document.createElement("button");
+    btn.id = "printButton";
+    btn.textContent = "診断結果を印刷する";
+    btn.style.marginTop = "20px";
+    btn.style.padding = "10px 20px";
+    btn.style.fontSize = "1rem";
+    btn.style.cursor = "pointer";
+
+    btn.onclick = async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/print`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: diagnosisText })
+            });
+            const data = await res.json();
+            alert(data.message || "印刷しました");
+        } catch {
+            alert("印刷に失敗しました");
+        }
+    };
+
+document.getElementById("chatBox").appendChild(btn);
+}
+
+
+        // 診断開始ボタン
+        document.getElementById("startButton").addEventListener("click", async () => {
+            setStatusMessage("Hidden Config\n\n多くの日本人は無宗教とされるが、実際には文化や社会的影響によって無意識のうちに信念が形成されている。\n\nそして、その信念は私たちの言動に作用し続ける。\n\nこのサイトでは、AIが生成した10の質問に答えることで、あなたに最適な宗教が提案される。\n\nその結果に違和感を覚えたなら、それはあなたの中にすでに宗教が存在していることに気づく瞬間である。\n\n質問生成中...\n\n");
+
+            try {
+                const response = await fetch(`${BASE_URL}/start-diagnosis`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId })
+                });
+
+                if (!response.ok) throw new Error("サーバーエラー");
+
+                const data = await response.json();
+                setStatusMessage("");
+                if (data.reply) {
+                    appendMessage(data.reply, "system");
+                }
+
+                appendInputField();
+            } catch (error) {
+                setStatusMessage("エラーが発生しました");
+                alert("通信エラーが発生しました。");
+            }
+        });
+
+        /// ✅ リロードボタンのクリック時に即リロード（通信エラーとは無関係）
+        document.getElementById("reloadButton").addEventListener("click", () => {
+            location.reload();
+        });
+
+
+        function setStatusMessage(message) {
+            const statusElement = document.getElementById("statusMessage");
+            typewriterEffect(statusElement, message);
+        }
+
+    </script>
+</body>
+</html>
